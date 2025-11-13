@@ -6,7 +6,7 @@ import axios from 'axios';
 const API_URL = 'http://localhost:5000/api';
 
 // =====================================================================
-// 1. Auth Context (ऑथ कॉन्टेक्स्ट)
+// 1. Auth Context 
 // =====================================================================
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
@@ -27,7 +27,7 @@ function AuthProvider({ children }) {
       navigate('/'); 
       return { success: true };
     } catch (err) {
-      return { success: false, error: err.response?.data?.error || 'लॉगिन विफल' };
+      return { success: false, error: err.response?.data?.error || 'login failed' };
     }
   };
 
@@ -55,17 +55,17 @@ function AuthProvider({ children }) {
 }
 
 // =====================================================================
-// 2. कॉम्पोनेंट्स (Components)
+// 2.  (Components)
 // =====================================================================
 
-// --- ProtectedRoute (गार्ड) ---
+// --- ProtectedRoute  ---
 function ProtectedRoute({ children }) {
   const { token } = useAuth();
   if (!token) return <Navigate to="/login" replace />;
   return children;
 }
 
-// --- Layout (लेआउट) ---
+// --- Layout  ---
 function Layout({ children }) {
   return (
     <div className="flex justify-center min-h-screen bg-gray-100 font-sans py-12 px-4">
@@ -76,7 +76,7 @@ function Layout({ children }) {
   );
 }
 
-// --- Login (लॉगिन) ---
+// --- Login ---
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,13 +92,13 @@ function Login() {
 
   return (
     <div className="p-8 space-y-6 bg-white rounded-lg shadow-xl max-w-md mx-auto">
-      <h2 className="text-3xl font-bold text-center text-gray-900">लॉगिन करें</h2>
+      <h2 className="text-3xl font-bold text-center text-gray-900">Login</h2>
       {error && <Alert type="error">{error}</Alert>}
       <form className="space-y-4" onSubmit={handleSubmit}>
         <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <Input label="पासवर्ड"Paa type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Input label="Password "Paa type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <button type="submit" className="w-full px-4 py-2 font-medium text-white bg-indigo-600 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-          लॉगिन
+          Login 
         </button>
       </form>
       <p className="text-sm text-center text-gray-600">
