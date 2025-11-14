@@ -1,4 +1,3 @@
-// backend/index.js
 
 const express = require('express');
 const cors = require('cors');
@@ -6,7 +5,7 @@ const { Pool } = require('pg');
 const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken'); 
 
-// JWT सीक्रेट की (key)
+// JWT secret (key)
 const JWT_SECRET = 'mysecretkey12345'; 
 
 const app = express();
@@ -15,81 +14,80 @@ const port = 5000;
 app.use(cors());
 app.use(express.json());
 
-// PostgreSQL कनेक्शन
+// PostgreSQL connection 
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
   database: 'rating_app',
-  password: 'Awsedrf^0987', // ❗ आपका पासवर्ड
+  password: 'Awsedrf^0987', // mera password 
   port: 5432,
 });
 
-// ❗❗ --- (नया) पासवर्ड वैलिडेशन हेल्पर --- ❗❗
 const validatePassword = (password) => {
   if (!password) {
-    return 'Password ज़रूरी है';
+    return 'Password is required';
   }
   if (password.length < 8 || password.length > 16) {
-    return 'Password 8 से 16 अक्षरों के बीच होना चाहिए।';
+    return 'Password should be between 8 to 16 characters.';
   }
   if (!/[A-Z]/.test(password)) {
-    return 'Password में कम से कम एक बड़ा अक्षर (uppercase) होना चाहिए।';
+    return 'The password must contain at least one uppercase letter.';
   }
-  // यह regex एक स्पेशल कैरेक्टर ढूँढता है
+  // This regex finds a special character.
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    return 'Password में कम से कम एक स्पेशल कैरेक्टर (!@#$...) होना चाहिए।';
+    return 'Password must contain at least one special character (!@#$...).';
   }
-  return null; // मतलब: कोई एरर नहीं
+  return null; // no error 
 };
-// ❗❗ --- हेल्पर यहाँ खत्म होता है --- ❗❗
+//  --- helper end here --- 
 
 
-// ❗❗ --- ऑथेंटिकेशन मिडलवेयर (Middleware) --- ❗❗
+//  --- Authentication Middleware  --- 
 const isAuthenticated = (req, res, next) => {
   try {
     if (!req.headers.authorization) {
-      return res.status(401).json({ error: 'एक्सेस डिनाइड (Access denied): टोकन नहीं मिला' });
+      return res.status(401).json({ error: 'Access denied: Token not found' });
     }
     const token = req.headers.authorization.split(' ')[1]; 
     if (!token) {
-      return res.status(401).json({ error: 'एक्सेस डिनाइड (Access denied): टोकन फॉर्मेट गलत है' });
+      return res.status(401).json({ error: 'Access denied: The token format is incorrect' });
     }
     const decodedToken = jwt.verify(token, JWT_SECRET);
     req.user = decodedToken; 
     next(); 
   } catch (err) {
     console.error('Token verification failed:', err.message); 
-    res.status(401).json({ error: 'अमान्य टोकन (Invalid token)' });
+    res.status(401).json({ error: 'Invalid token' });
   }
 };
-// ❗❗ --- isAuthenticated मिडलवेयर यहाँ खत्म होता है --- ❗❗
+//  --- isAuthenticated MIddleware end  --- 
 
 
-// ❗❗ --- एडमिन मिडलवेयर (Admin Middleware) --- ❗❗
+//  --- Admin Middleware --- 
 const isAdmin = (req, res, next) => {
   if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden: यह सिर्फ एडमिन कर सकते हैं' });
+    return res.status(403).json({ error: 'Forbidden: Only store owners can do this' });
   }
   next();
 };
-// ❗❗ --- एडमिन मिडलवेयर यहाँ खत्म होता है --- ❗❗
+// --- Admin midleware end  --- 
 
 
-// ❗❗ --- स्टोर ओनर मिडलवेयर (Store Owner Middleware) --- ❗❗
+// --- (Store Owner Middleware) --- 
 const isOwner = (req, res, next) => {
   if (req.user.role !== 'owner') {
-    return res.status(403).json({ error: 'Forbidden: यह सिर्फ स्टोर ओनर कर सकते हैं' });
+    return res.status(403).json({ error: 'Forbidden: Only store owners can do this' });
   }
   next();
 };
-// ❗❗ --- स्टोर ओनर मिडलवेयर यहाँ खत्म होता है --- ❗❗
+//  --- Store owner middleware end here  --- 
 
 
-// ===============================================
-// 👮 (Admin) API Routes
-// ===============================================
 
-// ❗❗ --- एडमिन API: डैशबोर्ड आँकड़े (Stats) --- ❗❗
+//  (Admin) API Routes
+
+
+//  --- Admin API : Dashboard status  --- 
 app.get('/api/admin/dashboard', [isAuthenticated, isAdmin], async (req, res) => {
   try {
     const userCountPromise = pool.query('SELECT COUNT(*) FROM users');
@@ -105,11 +103,11 @@ app.get('/api/admin/dashboard', [isAuthenticated, isAdmin], async (req, res) => 
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'सर्वर एरर' });
+    res.status(500).json({ error: 'Server Error ' });
   }
 });
 
-// ❗❗ --- एडमिन API: सभी यूज़र्स की लिस्ट (फ़िल्टर के साथ) --- ❗❗
+//  --- Admin API : sabhi users ki list (filter ke sath ) --- 
 app.get('/api/admin/users', [isAuthenticated, isAdmin], async (req, res) => {
   try {
     let baseQuery = 'SELECT id, name, email, address, role FROM users';
@@ -126,19 +124,20 @@ app.get('/api/admin/users', [isAuthenticated, isAdmin], async (req, res) => {
     res.status(200).json(rows); 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'सर्वर एरर' });
+    res.status(500).json({ error: 'Server Error ' });
   }
 });
 
-// ❗❗ --- एडमिन API: नया यूज़र (Owner) बनाना --- ❗❗
+// --- Admin  API: Nya user (Owner) Banana --- 
 app.post('/api/admin/users', [isAuthenticated, isAdmin], async (req, res) => {
   try {
     const { name, email, password, address, role } = req.body;
     if (!name || !email || !role) {
-      return res.status(400).json({ error: 'Name, email, और role ज़रूरी हैं' });
+      return res.status(400).json({ error: ' Name, email, and role are required' });
     }
     
-    // (नया) पासवर्ड वैलिडेशन
+    //New Password Validation 
+
     const passwordError = validatePassword(password);
     if (passwordError) {
       return res.status(400).json({ error: passwordError });
@@ -151,17 +150,19 @@ app.post('/api/admin/users', [isAuthenticated, isAdmin], async (req, res) => {
       [name, email, passwordHash, address, role]
     );
     res.status(201).json({
-      message: `यूज़र '${role}' सफलतापूर्वक बनाया गया!`,
+      message: `User '${role}' Created successfully!`,
       user: newUser.rows[0],
     });
   } catch (err) {
     console.error(err);
-    if (err.code === '23505') { return res.status(400).json({ error: 'यह email पहले से रजिस्टर है' }); }
-    res.status(500).json({ error: 'सर्वर एरर' });
+    if (err.code === '23505') { return res.status(400).json({ error: 'This email is already registered' }); }
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
-// ❗❗ --- एडमिन API: सभी स्टोर्स की लिस्ट (रेटिंग के साथ) --- ❗❗
+//      Admin ke sabhi rating list ke sath 
+
+
 app.get('/api/admin/stores', [isAuthenticated, isAdmin], async (req, res) => {
   try {
     let baseQuery = `
@@ -184,60 +185,54 @@ app.get('/api/admin/stores', [isAuthenticated, isAdmin], async (req, res) => {
     res.status(200).json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'सर्वर एरर' });
+    res.status(500).json({ error: 'Server Error ' });
   }
 });
 
-// ❗❗ --- एडमिन API: नया स्टोर (Store) बनाना --- ❗❗
 app.post('/api/admin/stores', [isAuthenticated, isAdmin], async (req, res) => {
   try {
     const { name, email, address, owner_id } = req.body;
     if (!name || !email || !owner_id) {
-      return res.status(400).json({ error: 'Name, email, और owner_id ज़रूरी हैं' });
+      return res.status(400).json({ error: 'Name, email, and owner_id are required' });
     }
     const newStore = await pool.query(
       "INSERT INTO stores (name, email, address, owner_id) VALUES ($1, $2, $3, $4) RETURNING *",
       [name, email, address, owner_id]
     );
     res.status(201).json({
-      message: 'स्टोर सफलतापूर्वक बनाया गया!',
+      message: 'Store created successfully!',
       store: newStore.rows[0],
     });
   } catch (err) {
     console.error(err);
-    if (err.code === '23505') { return res.status(400).json({ error: 'यह email पहले से रजिस्टर है' }); }
-    if (err.code === '23503') { return res.status(404).json({ error: 'दिया गया owner_id मौजूद नहीं है' }); }
-    res.status(500).json({ error: 'सर्वर एरर' });
+    if (err.code === '23505') { return res.status(400).json({ error: 'This email is already registered' }); }
+    if (err.code === '23503') { return res.status(404).json({ error: 'Given owner id does not exists ' }); }
+    res.status(500).json({ error: 'Server Error' });
   }
 });
 
 
-// ===============================================
-// 👤 (User) API Routes
-// ===============================================
-
-// ❗❗ --- यूज़र API: रेटिंग सबमिट/अपडेट करना --- ❗❗
 app.post('/api/user/ratings', isAuthenticated, async (req, res) => {
   try {
     const { store_id, rating } = req.body;
     const user_id = req.user.userId; 
-    if (!store_id || !rating) { return res.status(400).json({ error: 'store_id और rating ज़रूरी हैं' }); }
-    if (rating < 1 || rating > 5) { return res.status(400).json({ error: 'रेटिंग 1 से 5 के बीच होनी चाहिए' }); }
+    if (!store_id || !rating) { return res.status(400).json({ error: 'store_id and rating are required' }); }
+    if (rating < 1 || rating > 5) { return res.status(400).json({ error: 'Rating should be between 1 to 5' }); }
     const upsertQuery = `
       INSERT INTO ratings (user_id, store_id, rating) VALUES ($1, $2, $3)
       ON CONFLICT (user_id, store_id) DO UPDATE SET rating = $3, created_at = CURRENT_TIMESTAMP
       RETURNING *
     `;
     const { rows } = await pool.query(upsertQuery, [user_id, store_id, rating]);
-    res.status(201).json({ message: 'रेटिंग सफलतापूर्वक सबमिट/अपडेट हो गई!', rating: rows[0], });
+    res.status(201).json({ message: 'Rating successfully submitted/updated!', rating: rows[0], });
   } catch (err) {
     console.error(err);
-    if (err.code === '23503') { return res.status(404).json({ error: 'यह स्टोर मौजूद नहीं है' }); }
-    res.status(500).json({ error: 'सर्वर एरर' });
+    if (err.code === '23503') { return res.status(404).json({ error: 'store does not exist.' }); }
+    res.status(500).json({ error: 'Server Error' });
   }
 });
 
-// ❗❗ --- यूज़र API: सभी स्टोर्स की लिस्ट (यूज़र की रेटिंग के साथ) --- ❗❗
+//  --- User API: List of all stores (with user ratings) --- 
 app.get('/api/user/stores', isAuthenticated, async (req, res) => {
   try {
     const user_id = req.user.userId; 
@@ -262,16 +257,11 @@ app.get('/api/user/stores', isAuthenticated, async (req, res) => {
     res.status(200).json(rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'सर्वर एरर' });
+    res.status(500).json({ error: 'Server Error ' });
   }
 });
 
-
-// ===============================================
-// 🏠 (Store Owner) API Routes
-// ===============================================
-
-// ❗❗ --- स्टोर ओनर API: डैशबोर्ड (औसत रेटिंग + रेटर्स लिस्ट) --- ❗❗
+//  --- Store owner API: Dashboard Average rating and list  --- 
 app.get('/api/owner/dashboard', [isAuthenticated, isOwner], async (req, res) => {
   try {
     const owner_id = req.user.userId; 
@@ -287,7 +277,7 @@ app.get('/api/owner/dashboard', [isAuthenticated, isOwner], async (req, res) => 
     const storeResult = await pool.query(storeQuery, [owner_id]);
 
     if (storeResult.rows.length === 0) {
-      return res.status(404).json({ error: 'आपके नाम पर कोई स्टोर रजिस्टर नहीं है' });
+      return res.status(404).json({ error: 'There is no store registered in your name' });
     }
     const storeData = storeResult.rows[0]; 
     const ratersQuery = `
@@ -305,71 +295,65 @@ app.get('/api/owner/dashboard', [isAuthenticated, isOwner], async (req, res) => 
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'सर्वर एरर' });
+    res.status(500).json({ error: 'Server Error ' });
   }
 });
 
 
-// ===============================================
-// 🔐 (Shared) API Routes - सभी लॉग-इन यूज़र्स के लिए
-// ===============================================
+// (Shared) API Routes - for all login user 
 
-// ❗❗ --- (नया) API: पासवर्ड अपडेट करना --- ❗❗
+//  new password update 
 app.patch('/api/auth/update-password', isAuthenticated, async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
     const user_id = req.user.userId;
 
     if (!oldPassword || !newPassword) {
-      return res.status(400).json({ error: 'पुराना और नया पासवर्ड ज़रूरी है।' });
+      return res.status(400).json({ error: 'Old and new passwords are required.' });
     }
 
-    // 1. यूज़र का वर्तमान हैश (hash) लें
     const userResult = await pool.query('SELECT password_hash FROM users WHERE id = $1', [user_id]);
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'यूज़र नहीं मिला।' }); 
+      return res.status(404).json({ error: 'user not found' }); 
     }
     const user = userResult.rows[0];
 
-    // 2. पुराना पासवर्ड चेक करें
     const isPasswordValid = await bcrypt.compare(oldPassword, user.password_hash);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'पुराना पासवर्ड गलत है।' });
+      return res.status(401).json({ error: 'wrong old password' });
     }
     
-    // 3. नया पासवर्ड वैलिडेट करें
     const passwordError = validatePassword(newPassword);
     if (passwordError) {
       return res.status(400).json({ error: passwordError });
     }
 
-    // 4. नया पासवर्ड हैश (hash) करें और अपडेट करें
     const salt = await bcrypt.genSalt(10);
     const newPasswordHash = await bcrypt.hash(newPassword, salt);
     
     await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newPasswordHash, user_id]);
     
-    res.status(200).json({ message: 'पासवर्ड सफलतापूर्वक अपडेट हो गया!' });
+    res.status(200).json({ message: 'Password updated successfully!' });
 
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'सर्वर एरर' });
+    res.status(500).json({ error: 'Server Error' });
   }
 });
-// ❗❗ --- API यहाँ खत्म होता है --- ❗❗
+//  --- API end --- 
 
 
 // ===============================================
 // 🌐 (Public) API Routes
 // ===============================================
 
-// ❗❗ --- REGISTER API एंडपॉइंट --- ❗❗
+//  --- REGISTER API endpoint --- 
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, address } = req.body;
-    if (!name || !email) { return res.status(400).json({ error: 'Name और email ज़रूरी हैं' }); }
+    if (!name || !email) { return res.status(400).json({ error: 'Name and email are required' }); }
 
-    // (नया) पासवर्ड वैलिडेशन
+    // New password validation
     const passwordError = validatePassword(password);
     if (passwordError) {
       return res.status(400).json({ error: passwordError });
@@ -389,38 +373,38 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// ❗❗ --- LOGIN API एंडपॉइंट --- ❗❗
+//  --- LOGIN API endpoint  --- 
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) { return res.status(400).json({ error: 'Email और password ज़रूरी हैं' }); }
+    if (!email || !password) { return res.status(400).json({ error: 'Email and password are required' }); }
     const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (userResult.rows.length === 0) { return res.status(401).json({ error: 'अमान्य email या password' }); }
+    if (userResult.rows.length === 0) { return res.status(401).json({ error: 'Wrong email या password' }); }
     const user = userResult.rows[0];
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) { return res.status(401).json({ error: 'अमान्य email या password' }); }
+    if (!isPasswordValid) { return res.status(401).json({ error: 'Wrong email या password' }); }
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role },
       JWT_SECRET, 
       { expiresIn: '1h' }
     );
     res.status(200).json({
-      message: 'लॉगिन सफल!',
+      message: ' Login Successfull !!',
       token: token,
       user: { id: user.id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'सर्वर एरर' });
+    res.status(500).json({ error: 'Server Error' });
   }
 });
 
-// ❗❗ --- सुरक्षित (Protected) टेस्ट रूट --- ❗❗
+// --- (Protected) test root--- 
 app.get('/api/protected-test', isAuthenticated, (req, res) => {
-  res.json({ message: 'आप इस सुरक्षित रूट को देख सकते हैं!', user: req.user });
+  res.json({ message: 'now , you can see this protected root ', user: req.user });
 });
 
-// DB कनेक्शन टेस्ट रूट
+// DB connection test root 
 app.get('/test-db', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -432,12 +416,12 @@ app.get('/test-db', async (req, res) => {
 });
 
 
-// बेस रूट (Base Route)
+// (Base Route)
 app.get('/', (req, res) => {
   res.send('Server live in backend');
 });
 
-// सर्वर को सुनें (Listen)
+
 app.listen(port, () => {
   console.log(`Server http://localhost:${port} Countinued `);
 });
