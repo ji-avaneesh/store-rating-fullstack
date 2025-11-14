@@ -2,12 +2,12 @@ import React, { useState, createContext, useContext, useEffect } from 'react';
 import { Routes, Route, useNavigate, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
 
-// हमारे बैकएंड का बेस URL
+// Backend base url 
 const API_URL = 'http://localhost:5000/api';
 
-// =====================================================================
+
 // 1. Auth Context 
-// =====================================================================
+
 const AuthContext = createContext(null);
 const useAuth = () => useContext(AuthContext);
 
@@ -54,9 +54,9 @@ function AuthProvider({ children }) {
   );
 }
 
-// =====================================================================
+
 // 2.  (Components)
-// =====================================================================
+
 
 // --- ProtectedRoute  ---
 function ProtectedRoute({ children }) {
@@ -77,6 +77,7 @@ function Layout({ children }) {
 }
 
 // --- Login ---
+
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -112,6 +113,7 @@ function Login() {
 }
 
 // --- Register  ---
+
 function Register() {
   const [formData, setFormData] = useState({ name: '', email: '', password: '', address: '' });
   const [error, setError] = useState(null);
@@ -126,6 +128,7 @@ function Register() {
     setMessage(null);
     
     // Frontend Validation
+
     if (formData.name.length < 20 || formData.name.length > 60) { setError('The name should be between 20 to 60 characters.'); return; }
     if (formData.address.length > 400) { setError('The address must be less than 400 characters.'); return; }
     if (formData.password.length < 8 || formData.password.length > 16 || !/[A-Z]/.test(formData.password) || !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
@@ -167,6 +170,7 @@ function Register() {
 }
 
 // --- Main Dashboard ---
+
 function Dashboard() {
   const { user, logoutAction } = useAuth();
 
